@@ -126,7 +126,7 @@ async function run() {
       const result = await bookedCollection.find(filter).toArray();
       res.send(result);
     });
-    // Delete Room
+    // Delete Booked Room
     app.put("/roomDelete", async (req, res) => {
       const id = req.body._id;
       const name = req.body.room;
@@ -141,12 +141,72 @@ async function run() {
       const result1 = await roomCollection.updateOne(query, updateDoc);
       res.send(result);
     });
+    // Add room to database
+    app.post("/roomsAdd", async (req, res) => {
+      const room = req.body;
+      const result = await roomCollection.insertOne(room);
+      res.send(result);
+    });
+    // Room to show owned
+    app.get("/ownRoom", async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await roomCollection.find(filter).toArray();
+      res.send(result);
+    });
+    // Edit the Rooms
+    app.put("/updateRoom", async (req, res) => {
+      const id = req.body.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          name: req.body.name,
+          phoneNumber: req.body.phoneNumber,
+          photo: req.body.photo,
+          description: req.body.description,
+          availabilityDate: req.body.availabilityDate,
+          address: req.body.address,
+          rentPerMonth: req.body.rentPerMonth,
+          city: req.body.city,
+          bathrooms: req.body.bathrooms,
+          bedrooms: req.body.bedrooms,
+          roomSize: req.body.roomSize,
+          email: req.body.email,
+        },
+      };
+      const result = roomCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    // Delete Room from Database
+    app.put("/ownDelete/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await roomCollection.deleteOne(filter);
+      res.send(result);
+    });
+    // Search functionality
+    app.get("/search", async (req, res) => {
+      const { city, bedrooms, bathrooms, roomSize, availability, rentRange } =
+        req.query;
+      const query = {};
+      if (city) query.city = city;
+      if (bedrooms) query.bedrooms = bedrooms;
+      if (bathrooms) query.bathrooms = bathrooms;
+      if (roomSize) query.roomSize = roomSize;
+      if (availability) query.availability = availability;
+      if (rentRange) {
+        const [minRent, maxRent] = rentRange.split("-");
+        query.rentPerMonth = { $gte: minRent, $lte: maxRent };
+      }
+      const result = await roomCollection.find(query).toArray();
+      res.send(result);
+    });
     // api to input any missing field on database
     app.get("/roomsadd", async (req, res) => {
       const filter = {};
       const updateDoc = {
         $set: {
-          status: "available",
+          email: "rifat@gmail.com",
         },
       };
       const result = roomCollection.updateMany(filter, updateDoc);
