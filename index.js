@@ -45,6 +45,7 @@ async function run() {
     const Collection = client.db("HouseDB");
     const userCollection = Collection.collection("Users");
     const roomCollection = Collection.collection("Rooms");
+    const bookedCollection = Collection.collection("Booked");
 
     // set cookie with jwt
     app.post("/jwt", async (req, res) => {
@@ -88,7 +89,7 @@ async function run() {
       const result = await userCollection.findOne(filter);
       res.send(result);
     });
-    // Load All Rooms
+    // Load All Rooms with pagination
     app.get("/rooms", async (req, res) => {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
@@ -107,13 +108,37 @@ async function run() {
     // book room
     app.put("/book/:id", async (req, res) => {
       const id = req.params.id;
+      const bookedRoom = req.body;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
           status: "booked",
         },
       };
-      const result = roomCollection.updateOne(filter, updateDoc);
+      const result = await roomCollection.updateOne(filter, updateDoc);
+      const result2 = await bookedCollection.insertOne(bookedRoom);
+      res.send(result);
+    });
+    // show booked room
+    app.get("/booked", async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await bookedCollection.find(filter).toArray();
+      res.send(result);
+    });
+    // Delete Room
+    app.put("/roomDelete", async (req, res) => {
+      const id = req.body._id;
+      const name = req.body.room;
+      const filter = { _id: new ObjectId(id) };
+      const query = { name: name };
+      const updateDoc = {
+        $set: {
+          status: "available",
+        },
+      };
+      const result = await bookedCollection.deleteOne(filter);
+      const result1 = await roomCollection.updateOne(query, updateDoc);
       res.send(result);
     });
     // api to input any missing field on database
@@ -124,8 +149,7 @@ async function run() {
           status: "available",
         },
       };
-      const options = { upsert: true };
-      const result = roomCollection.updateMany(filter, updateDoc, options);
+      const result = roomCollection.updateMany(filter, updateDoc);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
